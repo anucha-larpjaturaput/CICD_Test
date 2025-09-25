@@ -1,1 +1,1 @@
-Test CDCI on IIS server
+Test CICD on IIS server
