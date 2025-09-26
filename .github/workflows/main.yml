@@ -17,22 +17,22 @@ jobs:
 
     # Step 2: Stop IIS Website (if running)
     - name: Stop IIS Website (if running)
-      run: |
-        Write-Output "Checking if IIS website CargoWise_Test exists and is running..."
-        Import-Module WebAdministration -ErrorAction Stop
-        if (Test-Path IIS:\Sites\CargoWise_Test) {
-          $website = Get-Website -Name "CargoWise_Test"
-          if ($website.state -eq "Started") {
-            Write-Output "Website CargoWise_Test is running. Stopping it..."
-            Stop-WebItem -PSPath 'IIS:\Sites\CargoWise_Test' -ErrorAction Stop
-            Write-Output "Website CargoWise_Test stopped successfully."
-          } else {
-            Write-Output "Website CargoWise_Test exists but is not running. No need to stop."
-          }
-        } else {
-          Write-Output "Website CargoWise_Test does not exist. Skipping stop operation."
-        }
-      shell: powershell
+  run: |
+    Write-Output "Checking if IIS website CargoWise_Test exists and is running..."
+    Import-Module WebAdministration -ErrorAction Stop
+    if (Test-Path IIS:\Sites\CargoWise_Test) {
+      $website = Get-Website -Name "CargoWise_Test"
+      if ($website.state -eq "Started") {
+        Write-Output "Website CargoWise_Test is running. Stopping it..."
+        Stop-Website -Name "CargoWise_Test" -ErrorAction Stop
+        Write-Output "Website CargoWise_Test stopped successfully."
+      } else {
+        Write-Output "Website CargoWise_Test exists but is not running. No need to stop."
+      }
+    } else {
+      Write-Output "Website CargoWise_Test does not exist. Skipping stop operation."
+    }
+  shell: powershell
 
     # Step 3: Backup Old Code
     - name: Backup Old Code
