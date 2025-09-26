@@ -1,0 +1,47 @@
+name: Test Self-Hosted Runner
+
+on:
+  push:
+    branches: [ main, master ]  # Triggers on both branches
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Manual trigger button
+
+jobs:
+  test:
+    runs-on: self-hosted  # Uses your YUTCW05 runner
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Runner Environment Test
+      run: |
+        Write-Host "🎉 Self-hosted runner is working!" -ForegroundColor Green
+        Write-Host "Branch: ${{ github.ref_name }}" -ForegroundColor Yellow
+        Write-Host "Repository: ${{ github.repository }}" -ForegroundColor Yellow
+        Write-Host "OS: $env:OS" -ForegroundColor Cyan
+        Write-Host "Computer: $env:COMPUTERNAME" -ForegroundColor Cyan
+        Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)" -ForegroundColor Cyan
+        Get-Date
+        
+    - name: List Repository Contents
+      run: |
+        Write-Host "📁 Repository Contents:" -ForegroundColor Green
+        Get-ChildItem -Force | Format-Table Name, Length, LastWriteTime
+        
+    - name: System Information
+      run: |
+        Write-Host "💻 System Info:" -ForegroundColor Green
+        Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, TotalPhysicalMemory
+        
+    - name: Check .NET Installation
+      run: |
+        Write-Host "🔧 .NET Information:" -ForegroundColor Green
+        try {
+          dotnet --version
+          dotnet --list-sdks
+          dotnet --list-runtimes
+        } catch {
+          Write-Host "❌ .NET not installed or not in PATH" -ForegroundColor Red
+        }
