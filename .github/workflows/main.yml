@@ -31,6 +31,7 @@ jobs:
           }
         } else {
           Write-Output "Website CargoWise_Test does not exist. Skipping stop operation."
+        }
       shell: powershell
 
     # Step 3: Backup Old Code
