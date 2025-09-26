@@ -1,0 +1,71 @@
+name: Deploy to IIS and Restart Website
+
+on:
+  push:
+    tags:
+      - "v*"  # Trigger only when a tag like v1.0.0 is pushed
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Step 2: Stop IIS Website
+    - name: Stop IIS Website
+      run: |
+        echo "Stopping IIS website CargoWise_Test..."
+        Import-Module WebAdministration
+        Stop-Website -Name "CargoWise_Test"
+        echo "Website CargoWise_Test stopped successfully."
+      shell: pwsh
+
+    # Step 3: Backup Old Code
+    - name: Backup Old Code
+      run: |
+        $backupDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd\Backup"
+        $sourceDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
+        echo "Creating backup directory: $backupDir"
+        if (-Not (Test-Path -Path $backupDir)) {
+          New-Item -ItemType Directory -Path $backupDir
+        }
+        echo "Backing up files to $backupDir..."
+        Copy-Item -Path "$sourceDir\*" -Destination $backupDir -Recurse -Exclude "Backup"
+        echo "Backup completed successfully."
+
+    # Step 4: Remove Old Code (Exclude Backup Directory)
+    - name: Remove Old Code
+      run: |
+        $sourceDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
+        echo "Removing old files from $sourceDir but keeping $sourceDir\\Backup..."
+        Get-ChildItem -Path $sourceDir -Recurse | Where-Object { $_.FullName -notlike "$sourceDir\\Backup*" } | Remove-Item -Recurse -Force
+        echo "Old files removed successfully."
+
+    # Step 5: Build the Code
+    - name: Build the Code
+      run: |
+        echo "Building the code..."
+        dotnet build --configuration Release
+        echo "Build completed successfully."
+
+    # Step 6: Deploy New Code
+    - name: Deploy New Code
+      run: |
+        $buildOutput = ".\bin\Release\net6.0"  # Adjust for your project's output folder
+        $targetDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
+        echo "Copying files to $targetDir..."
+        Copy-Item -Path "$buildOutput\*" -Destination $targetDir -Recurse
+        echo "New code deployed successfully."
+
+    # Step 7: Start IIS Website
+    - name: Start IIS Website
+      run: |
+        echo "Starting IIS website CargoWise_Test..."
+        Import-Module WebAdministration
+        Start-Website -Name "CargoWise_Test"
+        echo "Website CargoWise_Test started successfully."
+      shell: pwsh
