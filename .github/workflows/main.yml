@@ -15,13 +15,23 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # Step 2: Stop IIS Website
-    - name: Stop IIS Website
+    # Step 2: Stop IIS Website (if running)
+    - name: Stop IIS Website (if running)
       run: |
-        echo "Stopping IIS website CargoWise_Test..."
+        echo "Checking if IIS website CargoWise_Test exists and is running..."
         Import-Module WebAdministration
-        Stop-Website -Name "CargoWise_Test"
-        echo "Website CargoWise_Test stopped successfully."
+        if (Test-Path IIS:\Sites\CargoWise_Test) {
+          $website = Get-Website -Name "CargoWise_Test"
+          if ($website.state -eq "Started") {
+            echo "Website CargoWise_Test is running. Stopping it..."
+            Stop-Website -Name "CargoWise_Test"
+            echo "Website CargoWise_Test stopped successfully."
+          } else {
+            echo "Website CargoWise_Test exists but is not running. No need to stop."
+          }
+        } else {
+          echo "Website CargoWise_Test does not exist. Skipping stop operation."
+        }
       shell: pwsh
 
     # Step 3: Backup Old Code
@@ -29,11 +39,11 @@ jobs:
       run: |
         $backupDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd\Backup"
         $sourceDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
-        echo "Creating backup directory: $backupDir"
         if (-Not (Test-Path -Path $backupDir)) {
+          echo "Backup directory does not exist. Creating: $backupDir..."
           New-Item -ItemType Directory -Path $backupDir
         }
-        echo "Backing up files to $backupDir..."
+        echo "Backing up files from $sourceDir to $backupDir..."
         Copy-Item -Path "$sourceDir\*" -Destination $backupDir -Recurse -Exclude "Backup"
         echo "Backup completed successfully."
 
@@ -66,6 +76,10 @@ jobs:
       run: |
         echo "Starting IIS website CargoWise_Test..."
         Import-Module WebAdministration
-        Start-Website -Name "CargoWise_Test"
-        echo "Website CargoWise_Test started successfully."
+        if (Test-Path IIS:\Sites\CargoWise_Test) {
+          Start-Website -Name "CargoWise_Test"
+          echo "Website CargoWise_Test started successfully."
+        } else {
+          echo "Website CargoWise_Test does not exist. Cannot start."
+        }
       shell: pwsh
