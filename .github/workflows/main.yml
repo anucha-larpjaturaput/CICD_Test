@@ -16,12 +16,8 @@ jobs:
       uses: actions/checkout@v4
 
     # Step 2: Stop IIS Website (if running)
-   - name: Stop IIS Website (flat logic)
-  run: |
-    Write-Output "Checking if IIS website CargoWise_Test exists..."
-    Import-Module WebAdministration
-    if (Test-Path IIS:\Sites\CargoWise_Test) { Stop-Website -Name "CargoWise_Test"; Write-Output "Stopped site." }
-    else { Write-Output "Site does not exist." }
+  - name: Stop IIS Web Site
+  run: powershell -File scripts/stop-website.ps1 -SiteName "CargoWise_Test"
   shell: powershell
 
     # Step 3: Backup Old Code
