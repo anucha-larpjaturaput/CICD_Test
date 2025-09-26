@@ -1,0 +1,36 @@
+```yaml
+name: Test Self-Hosted Runner
+
+on:
+  push:
+    branches: [ master ]  # Note: using "master" not "main"
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  test:
+    runs-on: self-hosted  # This will use your Windows runner
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Test runner environment
+      run: |
+        echo "Runner is working!"
+        echo "OS: $env:OS"
+        echo "Computer Name: $env:COMPUTERNAME"
+        echo "User: $env:USERNAME"
+        Get-Date
+        
+    - name: List directory contents
+      run: Get-ChildItem
+      
+    - name: Test PowerShell commands
+      run: |
+        Write-Host "PowerShell version:"
+        $PSVersionTable.PSVersion
+        Write-Host "Available drives:"
+        Get-PSDrive -PSProvider FileSystem
+```
