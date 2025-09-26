@@ -18,21 +18,20 @@ jobs:
     # Step 2: Stop IIS Website (if running)
     - name: Stop IIS Website (if running)
       run: |
-        echo "Checking if IIS website CargoWise_Test exists and is running..."
+        Write-Output "Checking if IIS website CargoWise_Test exists and is running..."
         Import-Module WebAdministration
         if (Test-Path IIS:\Sites\CargoWise_Test) {
           $website = Get-Website -Name "CargoWise_Test"
           if ($website.state -eq "Started") {
-            echo "Website CargoWise_Test is running. Stopping it..."
+            Write-Output "Website CargoWise_Test is running. Stopping it..."
             Stop-Website -Name "CargoWise_Test"
-            echo "Website CargoWise_Test stopped successfully."
+            Write-Output "Website CargoWise_Test stopped successfully."
           } else {
-            echo "Website CargoWise_Test exists but is not running. No need to stop."
+            Write-Output "Website CargoWise_Test exists but is not running. No need to stop."
           }
         } else {
-          echo "Website CargoWise_Test does not exist. Skipping stop operation."
-        }
-      shell: pwsh
+          Write-Output "Website CargoWise_Test does not exist. Skipping stop operation."
+      shell: powershell
 
     # Step 3: Backup Old Code
     - name: Backup Old Code
@@ -40,46 +39,50 @@ jobs:
         $backupDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd\Backup"
         $sourceDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
         if (-Not (Test-Path -Path $backupDir)) {
-          echo "Backup directory does not exist. Creating: $backupDir..."
+          Write-Output "Backup directory does not exist. Creating: $backupDir..."
           New-Item -ItemType Directory -Path $backupDir
         }
-        echo "Backing up files from $sourceDir to $backupDir..."
+        Write-Output "Backing up files from $sourceDir to $backupDir..."
         Copy-Item -Path "$sourceDir\*" -Destination $backupDir -Recurse -Exclude "Backup"
-        echo "Backup completed successfully."
+        Write-Output "Backup completed successfully."
+      shell: powershell
 
     # Step 4: Remove Old Code (Exclude Backup Directory)
     - name: Remove Old Code
       run: |
         $sourceDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
-        echo "Removing old files from $sourceDir but keeping $sourceDir\\Backup..."
-        Get-ChildItem -Path $sourceDir -Recurse | Where-Object { $_.FullName -notlike "$sourceDir\\Backup*" } | Remove-Item -Recurse -Force
-        echo "Old files removed successfully."
+        Write-Output "Removing old files from $sourceDir but keeping $sourceDir\Backup..."
+        Get-ChildItem -Path $sourceDir -Recurse | Where-Object { $_.FullName -notlike "$sourceDir\Backup*" } | Remove-Item -Recurse -Force
+        Write-Output "Old files removed successfully."
+      shell: powershell
 
     # Step 5: Build the Code
     - name: Build the Code
       run: |
-        echo "Building the code..."
+        Write-Output "Building the code..."
         dotnet build --configuration Release
-        echo "Build completed successfully."
+        Write-Output "Build completed successfully."
+      shell: powershell
 
     # Step 6: Deploy New Code
     - name: Deploy New Code
       run: |
         $buildOutput = ".\bin\Release\net6.0"  # Adjust for your project's output folder
         $targetDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
-        echo "Copying files to $targetDir..."
+        Write-Output "Copying files to $targetDir..."
         Copy-Item -Path "$buildOutput\*" -Destination $targetDir -Recurse
-        echo "New code deployed successfully."
+        Write-Output "New code deployed successfully."
+      shell: powershell
 
     # Step 7: Start IIS Website
     - name: Start IIS Website
       run: |
-        echo "Starting IIS website CargoWise_Test..."
+        Write-Output "Starting IIS website CargoWise_Test..."
         Import-Module WebAdministration
         if (Test-Path IIS:\Sites\CargoWise_Test) {
           Start-Website -Name "CargoWise_Test"
-          echo "Website CargoWise_Test started successfully."
+          Write-Output "Website CargoWise_Test started successfully."
         } else {
-          echo "Website CargoWise_Test does not exist. Cannot start."
+          Write-Output "Website CargoWise_Test does not exist. Cannot start."
         }
-      shell: pwsh
+      shell: powershell
