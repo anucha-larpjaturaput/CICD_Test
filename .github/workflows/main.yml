@@ -11,6 +11,9 @@ jobs:
   test:
     runs-on: self-hosted  # Uses your YUTCW05 runner
     
+    env:
+      ACTIONS_STEP_DEBUG: true  # Enable debug logging
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
