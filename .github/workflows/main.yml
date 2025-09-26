@@ -1,50 +1,71 @@
-name: Test Self-Hosted Runner
+name: Deploy to IIS and Restart Website
 
 on:
   push:
-    branches: [ main, master ]  # Triggers on both branches
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:  # Manual trigger button
+    tags:
+      - "v*"  # Trigger only when a tag like v1.0.0 is pushed
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  test:
-    runs-on: self-hosted  # Uses your self-hosted runner
-    
-    env:
-      ACTIONS_STEP_DEBUG: true  # Enable debug logging
+  deploy:
+    runs-on: self-hosted
 
     steps:
-    - name: Checkout code
+    # Step 1: Checkout the code
+    - name: Checkout Code
       uses: actions/checkout@v4
-      
-    - name: Environment Test
+
+    # Step 2: Stop IIS Website
+    - name: Stop IIS Website
       run: |
-        echo "Self-hosted runner is working!"
-        echo "Branch: ${{ github.ref_name }}"
-        echo "Repository: ${{ github.repository }}"
-        echo "OS: $env:OS"
-        echo "Computer: $env:COMPUTERNAME"
-        echo "PowerShell Version: $($PSVersionTable.PSVersion)"
-        Get-Date
-        
-    - name: List Repository Contents
+        echo "Stopping IIS website CargoWise_Test..."
+        Import-Module WebAdministration
+        Stop-Website -Name "CargoWise_Test"
+        echo "Website CargoWise_Test stopped successfully."
+      shell: pwsh
+
+    # Step 3: Backup Old Code
+    - name: Backup Old Code
       run: |
-        echo "Repository Contents:"
-        Get-ChildItem -Force | Format-Table Name, Length, LastWriteTime
-        
-    - name: System Information
-      run: |
-        echo "System Info:"
-        Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, TotalPhysicalMemory
-        
-    - name: Check .NET Installation
-      run: |
-        echo ".NET Information:"
-        try {
-          dotnet --version
-          dotnet --list-sdks
-          dotnet --list-runtimes
-        } catch {
-          echo ".NET not installed or not in PATH"
+        $backupDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd\Backup"
+        $sourceDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
+        echo "Creating backup directory: $backupDir"
+        if (-Not (Test-Path -Path $backupDir)) {
+          New-Item -ItemType Directory -Path $backupDir
         }
+        echo "Backing up files to $backupDir..."
+        Copy-Item -Path "$sourceDir\*" -Destination $backupDir -Recurse -Exclude "Backup"
+        echo "Backup completed successfully."
+
+    # Step 4: Remove Old Code (Exclude Backup Directory)
+    - name: Remove Old Code
+      run: |
+        $sourceDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
+        echo "Removing old files from $sourceDir but keeping $sourceDir\\Backup..."
+        Get-ChildItem -Path $sourceDir -Recurse | Where-Object { $_.FullName -notlike "$sourceDir\\Backup*" } | Remove-Item -Recurse -Force
+        echo "Old files removed successfully."
+
+    # Step 5: Build the Code
+    - name: Build the Code
+      run: |
+        echo "Building the code..."
+        dotnet build --configuration Release
+        echo "Build completed successfully."
+
+    # Step 6: Deploy New Code
+    - name: Deploy New Code
+      run: |
+        $buildOutput = ".\bin\Release\net6.0"  # Adjust for your project's output folder
+        $targetDir = "C:\inetpub\wwwroot\CargoWise_Test\BackEnd"
+        echo "Copying files to $targetDir..."
+        Copy-Item -Path "$buildOutput\*" -Destination $targetDir -Recurse
+        echo "New code deployed successfully."
+
+    # Step 7: Start IIS Website
+    - name: Start IIS Website
+      run: |
+        echo "Starting IIS website CargoWise_Test..."
+        Import-Module WebAdministration
+        Start-Website -Name "CargoWise_Test"
+        echo "Website CargoWise_Test started successfully."
+      shell: pwsh
