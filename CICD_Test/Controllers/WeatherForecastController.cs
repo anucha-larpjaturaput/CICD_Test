@@ -15,6 +15,7 @@ namespace CICD_Test.Controllers
 
         public WeatherForecastController(ILogger<WeatherForecastController> logger)
         {
+            // Using constructor injection to get a logger instance
             _logger = logger;
         }
 
